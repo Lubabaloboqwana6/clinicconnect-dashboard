@@ -1,0 +1,369 @@
+.add-patient-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(
+    90deg,
+    var(--primary-color),
+    var(--secondary-color)
+  );
+  color: var(--white);
+  border: none;
+  padding: 12px 20px;
+  font-size: 15px;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 4px 14px 0 rgba(0, 118, 255, 0.25);
+}
+
+.add-patient-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px 0 rgba(0, 118, 255, 0.3);
+}
+
+.patients-controls {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+  align-items: center;
+}
+
+.search-box {
+  position: relative;
+  flex: 1;
+  max-width: 400px;
+}
+
+.search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-light);
+  z-index: 1;
+}
+
+.search-box input {
+  width: 100%;
+  padding: 12px 12px 12px 40px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 14px;
+  background-color: var(--white);
+  color: var(--text-dark);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.search-box input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.search-box input::placeholder {
+  color: var(--text-light);
+}
+
+.patients-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 20px;
+}
+
+.patient-card {
+  background-color: var(--white);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 20px;
+  transition: transform 0.2s, box-shadow 0.2s;
+  position: relative;
+}
+
+.patient-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+.patient-info h3 {
+  margin: 0 0 12px 0;
+  color: var(--text-dark);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.patient-details {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+.patient-details span {
+  color: var(--text-light);
+  background-color: var(--background-color);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.contact-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+.contact-info span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-dark);
+  background-color: var(--background-color);
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+.contact-info span svg {
+  color: var(--primary-color);
+  flex-shrink: 0;
+}
+
+.medical-conditions {
+  background-color: var(--light-primary);
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-bottom: 16px;
+  border-left: 4px solid var(--primary-color);
+}
+
+.medical-conditions strong {
+  color: var(--text-dark);
+  font-weight: 600;
+}
+
+.medical-conditions {
+  color: var(--text-dark);
+}
+
+.patient-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color);
+}
+
+.edit-btn,
+.delete-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex: 1;
+  justify-content: center;
+}
+
+.edit-btn {
+  background-color: var(--primary-color);
+  color: var(--white);
+}
+
+.edit-btn:hover {
+  background-color: var(--secondary-color);
+  transform: translateY(-1px);
+}
+
+.delete-btn {
+  background-color: var(--red);
+  color: var(--white);
+}
+
+.delete-btn:hover {
+  background-color: #dc2626;
+  transform: translateY(-1px);
+}
+
+.empty-state {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 60px 20px;
+  background-color: var(--white);
+  border: 2px dashed var(--border-color);
+  border-radius: 12px;
+  color: var(--text-light);
+}
+
+.empty-state p {
+  margin-bottom: 20px;
+  font-size: 16px;
+  color: var(--text-light);
+}
+
+/* Modal specific styles for patient form */
+.patient-modal {
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.patient-modal h2 {
+  color: var(--text-dark);
+  margin-bottom: 24px;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: var(--text-dark);
+  font-size: 14px;
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 16px;
+  background-color: var(--white);
+  color: var(--text-dark);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+}
+
+.form-group input::placeholder {
+  color: var(--text-light);
+}
+
+.form-group-row {
+  display: flex;
+  gap: 16px;
+}
+
+.form-group-row .form-group {
+  flex: 1;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border-color);
+}
+
+.modal-actions button {
+  padding: 12px 20px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 15px;
+  transition: transform 0.2s, background-color 0.2s;
+}
+
+.modal-actions button:hover {
+  transform: translateY(-2px);
+}
+
+.btn-cancel {
+  background-color: #f1f5f9;
+  color: var(--text-dark);
+  border: 1px solid var(--border-color);
+}
+
+.btn-cancel:hover {
+  background-color: #e2e8f0;
+}
+
+.btn-confirm {
+  background: linear-gradient(
+    90deg,
+    var(--primary-color),
+    var(--secondary-color)
+  );
+  color: var(--white);
+  box-shadow: 0 4px 14px 0 rgba(0, 118, 255, 0.39);
+}
+
+.btn-confirm:hover {
+  box-shadow: 0 6px 20px 0 rgba(0, 118, 255, 0.5);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .patients-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .patients-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-box {
+    max-width: none;
+  }
+
+  .patient-details {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .patient-actions {
+    flex-direction: column;
+  }
+
+  .patient-modal {
+    margin: 10px;
+    max-width: calc(100vw - 20px);
+  }
+
+  .form-group-row {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .patient-card {
+    padding: 16px;
+  }
+
+  .patient-info h3 {
+    font-size: 16px;
+  }
+
+  .contact-info span,
+  .patient-details span {
+    font-size: 13px;
+  }
+
+  .patient-modal {
+    padding: 20px;
+  }
+}
