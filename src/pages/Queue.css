@@ -30,11 +30,13 @@
   box-shadow: 0 6px 20px 0 rgba(0, 118, 255, 0.3);
 }
 
+/* Enhanced Queue Actions */
 .queue-actions {
   margin-bottom: 24px;
   display: flex;
   align-items: center;
   gap: 20px;
+  flex-wrap: wrap;
 }
 
 .call-next-btn {
@@ -48,6 +50,9 @@
   cursor: pointer;
   transition: all 0.2s;
   box-shadow: 0 4px 14px 0 rgba(56, 161, 105, 0.25);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .call-next-btn:hover:not(:disabled) {
@@ -63,6 +68,47 @@
   box-shadow: none;
 }
 
+/* NEW: Notify Next Button */
+.notify-next-btn {
+  background: linear-gradient(90deg, #f59e0b, #d97706);
+  color: var(--white);
+  border: none;
+  padding: 16px 24px;
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 14px 0 rgba(245, 158, 11, 0.25);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.notify-next-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px 0 rgba(245, 158, 11, 0.35);
+}
+
+.notify-next-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Spinning animation for loading states */
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .queue-summary {
   display: flex;
   align-items: center;
@@ -72,6 +118,18 @@
   font-weight: 500;
 }
 
+.next-app-user {
+  background: #fef3c7;
+  color: #92400e;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Enhanced Now Serving Card */
 .now-serving-card {
   background: linear-gradient(135deg, var(--light-primary), #f0f9ff);
   border: 2px solid var(--primary-color);
@@ -132,6 +190,7 @@
   font-weight: 500;
 }
 
+/* Waiting List */
 .waiting-list h2 {
   margin-bottom: 16px;
   color: var(--text-dark);
@@ -152,6 +211,13 @@
   border: 1px solid var(--border-color);
   border-radius: 12px;
   transition: all 0.2s ease;
+}
+
+/* NEW: Next patient highlighting */
+.queue-item.next-patient {
+  border-color: var(--green);
+  background: linear-gradient(135deg, #f0fff4, #ffffff);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
 }
 
 .queue-item:hover {
@@ -180,6 +246,36 @@
   min-width: 50px;
   text-align: center;
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  position: relative;
+}
+
+/* NEW: Next patient position styling */
+.queue-position.next {
+  background: linear-gradient(135deg, var(--green), #16a34a);
+  animation: pulse-next 2s infinite;
+}
+
+.next-label {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: #dc2626;
+  color: white;
+  font-size: 8px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+@keyframes pulse-next {
+  0%,
+  100% {
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  }
+  50% {
+    box-shadow: 0 4px 20px rgba(16, 185, 129, 0.6);
+  }
 }
 
 .queue-details {
@@ -192,6 +288,21 @@
   font-weight: 600;
   color: var(--text-dark);
   font-size: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* NEW: App user badge */
+.app-badge {
+  background: #ede9fe;
+  color: #6b21a8;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .queue-time {
@@ -207,6 +318,19 @@
   font-size: 13px;
   color: var(--text-light);
   font-style: italic;
+}
+
+/* NEW: Notified status */
+.notified-status {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #10b981;
+  font-weight: 600;
+  background: #f0fff4;
+  padding: 2px 6px;
+  border-radius: 4px;
 }
 
 .queue-item-actions {
@@ -257,15 +381,20 @@
   border: 1px solid #fde68a;
 }
 
-.notify-btn:hover:not(.notified) {
+.notify-btn:hover:not(.notified):not(:disabled) {
   background-color: #fef08a;
   transform: translateY(-1px);
 }
 
 .notify-btn.notified {
-  background-color: #f3f4f6;
-  color: var(--text-light);
-  border-color: var(--border-color);
+  background-color: #f0fff4;
+  color: #10b981;
+  border-color: #bbf7d0;
+  cursor: not-allowed;
+}
+
+.notify-btn:disabled {
+  opacity: 0.7;
   cursor: not-allowed;
 }
 
@@ -389,6 +518,11 @@
   .queue-summary {
     justify-content: center;
     text-align: center;
+    flex-wrap: wrap;
+  }
+
+  .next-app-user {
+    margin-top: 8px;
   }
 
   .now-serving-card {
@@ -426,6 +560,8 @@
     justify-content: space-between;
     padding-top: 12px;
     border-top: 1px solid var(--border-color);
+    flex-wrap: wrap;
+    gap: 8px;
   }
 
   .details-content {
@@ -437,6 +573,12 @@
     font-size: 13px;
     padding: 6px 10px;
   }
+
+  .call-next-btn,
+  .notify-next-btn {
+    padding: 12px 16px;
+    font-size: 14px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -445,9 +587,10 @@
     font-size: 14px;
   }
 
-  .call-next-btn {
-    padding: 14px 20px;
-    font-size: 15px;
+  .call-next-btn,
+  .notify-next-btn {
+    padding: 10px 14px;
+    font-size: 13px;
   }
 
   .now-serving-card {
@@ -515,4 +658,409 @@
   border-radius: 8px;
   margin-bottom: 16px;
   font-weight: 500;
+}
+.smart-notify-btn {
+  background: linear-gradient(90deg, #8b5cf6, #a855f7);
+  color: var(--white);
+  border: none;
+  padding: 16px 24px;
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 14px 0 rgba(139, 92, 246, 0.25);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.smart-notify-btn:hover:not(.disabled):not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px 0 rgba(139, 92, 246, 0.35);
+  background: linear-gradient(90deg, #7c3aed, #9333ea);
+}
+
+.smart-notify-btn.disabled,
+.smart-notify-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #9ca3af;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Notification Result Display */
+.notification-result {
+  margin: 0 0 24px 0;
+  padding: 16px 20px;
+  border-radius: 12px;
+  border-left: 4px solid;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  animation: slideIn 0.3s ease;
+}
+
+.notification-result.success {
+  background: linear-gradient(135deg, #f0fff4, #ecfdf5);
+  border-left-color: #10b981;
+  color: #065f46;
+}
+
+.notification-result.error {
+  background: linear-gradient(135deg, #fef2f2, #fee2e2);
+  border-left-color: #ef4444;
+  color: #991b1b;
+}
+
+.result-content {
+  flex: 1;
+}
+
+.result-icon {
+  font-size: 18px;
+  margin-right: 12px;
+}
+
+.result-message {
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.notified-list {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.notified-patient {
+  background: rgba(255, 255, 255, 0.7);
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.close-result {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+  padding: 4px 8px;
+  margin-left: 12px;
+}
+
+.close-result:hover {
+  opacity: 1;
+}
+
+/* Enhanced Queue Summary */
+.notifiable-count {
+  background: #f3e8ff;
+  color: #7c3aed;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Waiting List Header */
+.waiting-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.notification-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f0f9ff;
+  color: #0369a1;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.notification-icon {
+  animation: pulse 2s infinite;
+}
+
+/* Enhanced Patient Status Indicators */
+.estimated-wait {
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+  margin-left: 8px;
+}
+
+.notification-status {
+  margin-top: 4px;
+}
+
+.notified-status {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #10b981;
+  font-weight: 600;
+}
+
+.notification-time {
+  font-size: 10px;
+  color: #6b7280;
+  font-weight: 400;
+  margin-left: 4px;
+}
+
+.can-notify-status {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #f59e0b;
+  font-weight: 600;
+  animation: pulse-notify 2s infinite;
+}
+
+.waiting-status {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+@keyframes pulse-notify {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+/* Enhanced Notify Button States */
+.notify-btn.disabled {
+  background-color: #f3f4f6;
+  color: #9ca3af;
+  border-color: #e5e7eb;
+  cursor: not-allowed;
+}
+
+.notify-btn.disabled:hover {
+  transform: none;
+  background-color: #f3f4f6;
+}
+
+/* Pulse animation for notification-ready elements */
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* Loading spinner enhancement */
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Slide in animation for notifications */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Enhanced detail items for notification info */
+.detail-item.notification-info {
+  border-left-color: #8b5cf6;
+  background: linear-gradient(135deg, #f3e8ff, #ffffff);
+}
+
+/* Mobile responsiveness for new elements */
+@media (max-width: 768px) {
+  .smart-notify-btn {
+    padding: 12px 16px;
+    font-size: 14px;
+  }
+
+  .waiting-list-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .notification-summary {
+    font-size: 13px;
+    padding: 6px 10px;
+  }
+
+  .notification-result {
+    padding: 12px 16px;
+  }
+
+  .result-message {
+    font-size: 14px;
+  }
+
+  .notified-list {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .notified-patient {
+    font-size: 12px;
+  }
+
+  .notifiable-count {
+    font-size: 13px;
+    padding: 3px 6px;
+  }
+
+  .estimated-wait {
+    font-size: 10px;
+  }
+
+  .notification-status {
+    margin-top: 2px;
+  }
+
+  .notified-status,
+  .can-notify-status,
+  .waiting-status {
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 480px) {
+  .smart-notify-btn {
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+
+  .notification-result {
+    padding: 10px 12px;
+  }
+
+  .result-content {
+    font-size: 13px;
+  }
+
+  .close-result {
+    font-size: 16px;
+    padding: 2px 6px;
+  }
+
+  .notification-summary {
+    font-size: 12px;
+    padding: 4px 8px;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .smart-notify-btn {
+    border: 2px solid #7c3aed;
+  }
+
+  .notification-result {
+    border-left-width: 6px;
+  }
+
+  .notified-status,
+  .can-notify-status,
+  .waiting-status {
+    border: 1px solid currentColor;
+    padding: 2px 4px;
+    border-radius: 3px;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .notification-icon,
+  .can-notify-status {
+    animation: none;
+  }
+
+  .spinning {
+    animation: none;
+  }
+
+  .notification-result {
+    animation: none;
+  }
+
+  .smart-notify-btn:hover:not(.disabled):not(:disabled) {
+    transform: none;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .notification-result.success {
+    background: linear-gradient(135deg, #064e3b, #065f46);
+    color: #10b981;
+  }
+
+  .notification-result.error {
+    background: linear-gradient(135deg, #7f1d1d, #991b1b);
+    color: #f87171;
+  }
+
+  .notified-patient {
+    background: rgba(0, 0, 0, 0.3);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .notification-summary {
+    background: #1e3a8a;
+    color: #60a5fa;
+  }
+
+  .notifiable-count {
+    background: #581c87;
+    color: #c084fc;
+  }
+
+  .estimated-wait {
+    background: #92400e;
+    color: #fbbf24;
+  }
 }
