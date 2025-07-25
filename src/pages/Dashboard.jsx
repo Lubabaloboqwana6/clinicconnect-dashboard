@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useData } from "../context/DataContext";
-import { AddAppointmentModal } from "../components/AddAppointmentModal";
+import { FirebaseAppointmentModal } from "../components/FirebaseAppointmentModal"; // Use new Firebase modal
 import { AddWalkInModal } from "../components/AddWalkInModal";
 import {
   FiCalendar,
@@ -73,60 +73,90 @@ const RecentActivity = ({ activities }) => (
 );
 
 export const Dashboard = () => {
-  const { appointments, queue, getAnalytics } = useData();
+  const { appointments, queue, getAnalytics, refreshData } = useData();
   const [showAppointmentModal, setShowAppointmentModal] = useState(false);
   const [showWalkInModal, setShowWalkInModal] = useState(false);
 
   const todayString = new Date().toISOString().split("T")[0];
   const analytics = getAnalytics();
 
-  // Calculate stats
+  // Calculate stats - Fixed to handle Firebase data
   const todaysAppointments = appointments.filter(
     (apt) => apt.date === todayString
   );
   const waitingInQueue = queue.filter((p) => p.status === "Waiting").length;
+
   const completedAppointments = todaysAppointments.filter(
-    (a) => a.status === "Completed"
+    (a) => a.status === "Completed" || a.status === "completed"
   ).length;
+
   const upcomingToday = todaysAppointments.filter(
-    (a) => a.status === "Confirmed"
+    (a) => a.status === "Confirmed" || a.status === "confirmed"
   ).length;
 
   // Generate recent activities
   const recentActivities = [
-    { text: "New appointment scheduled for John Doe", time: "5 min ago" },
-    { text: "Patient Alice Williams checked in", time: "12 min ago" },
+    { text: "New appointment scheduled", time: "5 min ago" },
+    { text: "Patient checked in", time: "12 min ago" },
     { text: "Queue position updated", time: "18 min ago" },
-    { text: "Appointment completed for Peter Jones", time: "25 min ago" },
+    { text: "Appointment completed", time: "25 min ago" },
   ];
 
-  // Upcoming appointments (next 5)
+  // Upcoming appointments logic
   const allUpcomingAppointments = appointments
-    .filter((apt) => apt.date >= todayString && apt.status === "Confirmed")
+    .filter((apt) => {
+      const appointmentDate = apt.date;
+      const isUpcoming = appointmentDate >= todayString;
+      const isConfirmed =
+        apt.status === "Confirmed" ||
+        apt.status === "confirmed" ||
+        apt.status === "Checked-In" ||
+        apt.status === "checked-in";
+
+      return isUpcoming && isConfirmed;
+    })
     .sort((a, b) => {
-      if (a.date > b.date) return 1;
-      if (a.date < b.date) return -1;
+      if (a.date !== b.date) {
+        return a.date.localeCompare(b.date);
+      }
       return a.time.localeCompare(b.time);
     })
     .slice(0, 5);
 
   const formatListDate = (dateString) => {
-    const date = new Date(dateString);
-    const timezoneOffset = date.getTimezoneOffset() * 60000;
-    return {
-      month: new Date(date.getTime() + timezoneOffset).toLocaleDateString(
-        "en-US",
-        { month: "short" }
-      ),
-      day: new Date(date.getTime() + timezoneOffset).getDate(),
-    };
+    try {
+      const date = new Date(dateString + "T00:00:00");
+      return {
+        month: date.toLocaleDateString("en-US", { month: "short" }),
+        day: date.getDate(),
+      };
+    } catch (error) {
+      console.error("Date formatting error:", error);
+      return { month: "Jan", day: "1" };
+    }
+  };
+
+  // Handle successful appointment creation/update
+  const handleAppointmentSuccess = (appointment, action) => {
+    console.log(`✅ Appointment ${action}:`, appointment);
+
+    // Refresh the data to show the new appointment
+    refreshData();
+
+    // Close the modal
+    setShowAppointmentModal(false);
+
+    // Optional: Show success message
+    // You could add a notification system here
   };
 
   return (
     <>
-      <AddAppointmentModal
+      {/* Use the new Firebase modal */}
+      <FirebaseAppointmentModal
         show={showAppointmentModal}
         onClose={() => setShowAppointmentModal(false)}
+        onSuccess={handleAppointmentSuccess}
       />
       <AddWalkInModal
         show={showWalkInModal}
@@ -139,6 +169,15 @@ export const Dashboard = () => {
             <h1>Good morning, Dr. Smith!</h1>
             <p className="subtitle">
               Here's what's happening at your clinic today.
+              <span
+                style={{
+                  color: "#10B981",
+                  fontWeight: "bold",
+                  marginLeft: "10px",
+                }}
+              >
+                🔥 Firebase Connected
+              </span>
             </p>
           </div>
           <div className="current-time">
@@ -226,6 +265,7 @@ export const Dashboard = () => {
                   View All <FiArrowRight />
                 </Link>
               </div>
+
               {allUpcomingAppointments.length > 0 ? (
                 allUpcomingAppointments.map((apt) => {
                   const { month, day } = formatListDate(apt.date);
@@ -237,9 +277,11 @@ export const Dashboard = () => {
                       </div>
                       <div className="info">
                         <span className="patient-info">
-                          {apt.time} - {apt.patientName}
+                          {apt.time} - {apt.patientName || "Unknown Patient"}
                         </span>
-                        <span className="service-info">{apt.service}</span>
+                        <span className="service-info">
+                          {apt.service || "General Practice"}
+                        </span>
                       </div>
                       <div className="appointment-status">
                         <span
@@ -254,6 +296,20 @@ export const Dashboard = () => {
               ) : (
                 <div className="list-item-empty">
                   <p>No upcoming appointments found.</p>
+                  <button
+                    onClick={() => setShowAppointmentModal(true)}
+                    style={{
+                      marginTop: "10px",
+                      padding: "8px 16px",
+                      background: "var(--primary-color)",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "4px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Schedule First Appointment
+                  </button>
                 </div>
               )}
             </div>
