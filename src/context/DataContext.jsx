@@ -1,7 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from "react";
 import { appointmentsService } from "../services/appointmentsService";
 import { patientsService } from "../services/patientsService";
-import { initialQueue } from "../data/mock"; // Keep queue local for now
+import { queueService } from "../services/queueService"; // NEW: Import queue service
 
 const DataContext = createContext();
 
@@ -11,13 +11,24 @@ export const DataProvider = ({ children }) => {
   // State for Firebase data
   const [appointments, setAppointments] = useState([]);
   const [patients, setPatients] = useState([]);
-  const [queue, setQueue] = useState(initialQueue); // Keep queue local for now
+  const [queue, setQueue] = useState([]); // NOW: Firebase queue instead of local
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Real-time queue listener
+  const [queueUnsubscribe, setQueueUnsubscribe] = useState(null);
 
   // Load data from Firebase on mount
   useEffect(() => {
     loadFirebaseData();
+    setupQueueListener(); // NEW: Set up real-time queue updates
+
+    // Cleanup function
+    return () => {
+      if (queueUnsubscribe) {
+        queueUnsubscribe();
+      }
+    };
   }, []);
 
   const loadFirebaseData = async () => {
@@ -27,18 +38,21 @@ export const DataProvider = ({ children }) => {
     try {
       console.log("🔄 Loading data from Firebase...");
 
-      // Load appointments and patients in parallel
-      const [appointmentsData, patientsData] = await Promise.all([
+      // Load appointments, patients, and queue in parallel
+      const [appointmentsData, patientsData, queueData] = await Promise.all([
         appointmentsService.getAppointments(),
         patientsService.getPatients(),
+        queueService.getQueue(), // NEW: Load queue from Firebase
       ]);
 
       setAppointments(appointmentsData);
       setPatients(patientsData);
+      setQueue(queueData); // NEW: Set Firebase queue data
 
       console.log("✅ Successfully loaded Firebase data:", {
         appointments: appointmentsData.length,
         patients: patientsData.length,
+        queue: queueData.length, // NEW: Log queue count
       });
     } catch (err) {
       console.error("❌ Failed to load Firebase data:", err);
@@ -47,8 +61,29 @@ export const DataProvider = ({ children }) => {
       // Fallback to empty arrays
       setAppointments([]);
       setPatients([]);
+      setQueue([]); // NEW: Empty queue on error
     } finally {
       setLoading(false);
+    }
+  };
+
+  // NEW: Set up real-time queue listener
+  const setupQueueListener = () => {
+    try {
+      console.log("📡 Setting up real-time queue listener...");
+
+      const unsubscribe = queueService.subscribeToQueue((queueData) => {
+        console.log(
+          "📡 Real-time queue update received:",
+          queueData.length,
+          "items"
+        );
+        setQueue(queueData);
+      });
+
+      setQueueUnsubscribe(() => unsubscribe);
+    } catch (error) {
+      console.error("❌ Failed to set up queue listener:", error);
     }
   };
 
@@ -58,15 +93,14 @@ export const DataProvider = ({ children }) => {
     await loadFirebaseData();
   };
 
-  // APPOINTMENT FUNCTIONS - Now use Firebase
+  // APPOINTMENT FUNCTIONS - Firebase integrated
   const addAppointment = async (appointmentData) => {
     try {
       const newAppointment = await appointmentsService.addAppointment({
         ...appointmentData,
-        status: appointmentData.status || "confirmed", // Use provided status or default
+        status: appointmentData.status || "confirmed",
       });
 
-      // Update local state immediately for better UX
       setAppointments((prev) => [newAppointment, ...prev]);
       console.log("✅ Added appointment locally and to Firebase");
       return newAppointment;
@@ -80,7 +114,6 @@ export const DataProvider = ({ children }) => {
     try {
       await appointmentsService.updateAppointment(appointmentId, updates);
 
-      // Update local state immediately
       setAppointments((prev) =>
         prev.map((apt) =>
           apt.id === appointmentId ? { ...apt, ...updates } : apt
@@ -97,7 +130,6 @@ export const DataProvider = ({ children }) => {
     try {
       await appointmentsService.deleteAppointment(appointmentId);
 
-      // Update local state immediately
       setAppointments((prev) => prev.filter((apt) => apt.id !== appointmentId));
       console.log("✅ Deleted appointment locally and from Firebase");
     } catch (error) {
@@ -115,7 +147,7 @@ export const DataProvider = ({ children }) => {
     }
   };
 
-  // PATIENT FUNCTIONS - Now use Firebase
+  // PATIENT FUNCTIONS - Firebase integrated
   const addPatient = async (patientData) => {
     try {
       const newPatient = await patientsService.addPatient(patientData);
@@ -153,80 +185,115 @@ export const DataProvider = ({ children }) => {
     }
   };
 
-  // QUEUE FUNCTIONS - Keep local for now
-  const addWalkInToQueue = (walkInData) => {
-    const maxPosition =
-      queue.length > 0 ? Math.max(...queue.map((p) => p.position)) : 0;
+  // QUEUE FUNCTIONS - NOW: Firebase integrated! 🔥
+  const addWalkInToQueue = async (walkInData) => {
+    try {
+      // Handle both old format (string) and new format (object)
+      let queueData;
 
-    let patientName, patientId, idNumber, phoneNumber, reasonForVisit;
+      if (typeof walkInData === "string") {
+        // Old format compatibility
+        queueData = {
+          patientName: `${walkInData} (Walk-in)`,
+          type: "walk-in",
+          status: "Waiting",
+          notified: false,
+        };
+      } else {
+        // New enhanced format
+        queueData = {
+          patientName: `${walkInData.fullName} (Walk-in)`,
+          idNumber: walkInData.idNumber,
+          phoneNumber: walkInData.phoneNumber,
+          reasonForVisit: walkInData.reasonForVisit,
+          type: "walk-in",
+          status: "Waiting",
+          notified: false,
+        };
+      }
 
-    if (typeof walkInData === "string") {
-      patientName = `${walkInData} (Walk-in)`;
-      patientId = null;
-      idNumber = null;
-      phoneNumber = null;
-      reasonForVisit = null;
-    } else {
-      patientName = `${walkInData.fullName} (Walk-in)`;
-      patientId = null;
-      idNumber = walkInData.idNumber;
-      phoneNumber = walkInData.phoneNumber;
-      reasonForVisit = walkInData.reasonForVisit;
+      // NEW: Add to Firebase queue
+      const newQueueItem = await queueService.addToQueue(queueData);
+      console.log(
+        "✅ Added walk-in to Firebase queue:",
+        newQueueItem.patientName
+      );
+
+      // Note: Real-time listener will update local state automatically
+      return newQueueItem;
+    } catch (error) {
+      console.error("Failed to add walk-in to queue:", error);
+      throw error;
     }
-
-    const newWalkIn = {
-      id: Date.now(),
-      patientName,
-      position: maxPosition + 1,
-      joinTime: new Date().toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-      status: "Waiting",
-      type: "walk-in",
-      notified: false,
-      idNumber,
-      phoneNumber,
-      reasonForVisit,
-      addedAt: new Date().toISOString(),
-    };
-
-    setQueue((prev) => [...prev, newWalkIn]);
   };
 
-  const callNextInQueue = () => {
-    const waitingPatients = queue.filter((p) => p.status === "Waiting");
-    if (waitingPatients.length === 0) return;
+  const callNextInQueue = async () => {
+    try {
+      // NEW: Use Firebase queue service
+      const calledPatient = await queueService.callNextPatient();
 
-    const nextPatient = waitingPatients.reduce((min, patient) =>
-      patient.position < min.position ? patient : min
-    );
+      if (calledPatient) {
+        console.log("✅ Called next patient:", calledPatient.patientName);
+      } else {
+        console.log("ℹ️ No patients waiting to be called");
+      }
 
-    setQueue((prev) =>
-      prev.map((patient) =>
-        patient.id === nextPatient.id
-          ? { ...patient, status: "Called" }
-          : patient.status === "Called"
-          ? { ...patient, status: "Completed" }
-          : patient
-      )
-    );
+      // Note: Real-time listener will update local state automatically
+      return calledPatient;
+    } catch (error) {
+      console.error("Failed to call next patient:", error);
+      throw error;
+    }
   };
 
-  const completeQueueMember = (patientId) => {
-    setQueue((prev) => prev.filter((p) => p.id !== patientId));
+  const completeQueueMember = async (patientId) => {
+    try {
+      // NEW: Remove from Firebase queue
+      await queueService.removeFromQueue(patientId);
+      console.log("✅ Removed patient from Firebase queue");
+
+      // Note: Real-time listener will update local state automatically
+    } catch (error) {
+      console.error("Failed to complete queue member:", error);
+      throw error;
+    }
   };
 
-  const notifyPatient = (patientId) => {
-    setQueue((prev) =>
-      prev.map((patient) =>
-        patient.id === patientId ? { ...patient, notified: true } : patient
-      )
-    );
-    alert("Notification sent: 'You are almost next!'");
+  const notifyPatient = async (patientId) => {
+    try {
+      // NEW: Update notification status in Firebase
+      await queueService.notifyPatient(patientId);
+      console.log("✅ Notified patient in Firebase");
+
+      // Note: Real-time listener will update local state automatically
+
+      // Still show the alert for user feedback
+      alert("Notification sent: 'You are almost next!'");
+    } catch (error) {
+      console.error("Failed to notify patient:", error);
+      throw error;
+    }
   };
 
-  // Analytics function - now uses Firebase data
+  // NEW: Get queue statistics from Firebase
+  const getQueueStats = async () => {
+    try {
+      return await queueService.getQueueStats();
+    } catch (error) {
+      console.error("Failed to get queue stats:", error);
+      return {
+        total: 0,
+        waiting: 0,
+        called: 0,
+        completed: 0,
+        walkIns: 0,
+        appointments: 0,
+        averageWaitTime: "0 min",
+      };
+    }
+  };
+
+  // Analytics function - now uses Firebase data including queue
   const getAnalytics = () => {
     const today = new Date().toISOString().split("T")[0];
     return {
@@ -269,8 +336,8 @@ export const DataProvider = ({ children }) => {
           .length,
       },
       queueMetrics: {
-        averageWaitTime: "15 min",
-        totalServed: 12,
+        averageWaitTime: "15 min", // TODO: Calculate from Firebase queue data
+        totalServed: queue.filter((p) => p.status === "Completed").length,
         currentWaiting: queue.filter((p) => p.status === "Waiting").length,
       },
     };
@@ -279,7 +346,7 @@ export const DataProvider = ({ children }) => {
   const value = {
     // Data
     appointments,
-    queue,
+    queue, // NOW: Firebase queue data
     patients,
     loading,
     error,
@@ -290,11 +357,12 @@ export const DataProvider = ({ children }) => {
     deleteAppointment,
     checkInAppointment,
 
-    // Queue functions
+    // Queue functions - NOW: All Firebase integrated! 🔥
     addWalkInToQueue,
     callNextInQueue,
     completeQueueMember,
     notifyPatient,
+    getQueueStats, // NEW: Firebase queue stats
 
     // Patient functions
     addPatient,
@@ -303,7 +371,7 @@ export const DataProvider = ({ children }) => {
 
     // Utility functions
     getAnalytics,
-    refreshData, // FIXED: Now included in context
+    refreshData,
   };
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
