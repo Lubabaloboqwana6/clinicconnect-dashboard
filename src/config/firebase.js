@@ -1,27 +1,8 @@
-// src/config/firebase.js - Firebase configuration with environment variables
+// src/config/firebase.js
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getAnalytics } from "firebase/analytics";
-
-// Validate environment variables
-const requiredEnvVars = [
-  "VITE_FIREBASE_API_KEY",
-  "VITE_FIREBASE_AUTH_DOMAIN",
-  "VITE_FIREBASE_PROJECT_ID",
-  "VITE_FIREBASE_STORAGE_BUCKET",
-  "VITE_FIREBASE_MESSAGING_SENDER_ID",
-  "VITE_FIREBASE_APP_ID",
-];
-
-const missingVars = requiredEnvVars.filter(
-  (varName) => !import.meta.env[varName]
-);
-if (missingVars.length > 0) {
-  throw new Error(
-    `Missing required environment variables: ${missingVars.join(", ")}`
-  );
-}
 
 // Firebase configuration using environment variables
 const firebaseConfig = {
@@ -34,7 +15,12 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
-// Log configuration status (without sensitive data)
+// Optional: Check and warn (but don’t throw) if something’s missing
+if (!firebaseConfig.apiKey || !firebaseConfig.appId) {
+  console.warn("⚠️ Some Firebase environment variables are missing.");
+}
+
+// Log configuration (no secrets)
 console.log("🔥 Firebase Config Status:", {
   project: firebaseConfig.projectId,
   authDomain: firebaseConfig.authDomain,
@@ -45,11 +31,10 @@ console.log("🔥 Firebase Config Status:", {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize Firebase services
+// Firebase services
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 
-// Initialize Analytics (optional - only works in production)
 let analytics;
 if (typeof window !== "undefined") {
   try {
@@ -59,10 +44,6 @@ if (typeof window !== "undefined") {
     console.log("📊 Analytics not available:", error.message);
   }
 }
+
 export { analytics };
-
-// Export the app instance
 export default app;
-
-// Test Firebase connection
-console.log("🔥 Firebase initialized with project:", firebaseConfig.projectId);
