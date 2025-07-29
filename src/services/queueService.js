@@ -1,4 +1,7 @@
+// src/services/queueService.js
+
 import { db } from "../config/firebase";
+import { getFunctions, httpsCallable } from "firebase/functions"; // <-- ADD THIS IMPORT
 import {
   collection,
   addDoc,
@@ -16,6 +19,7 @@ import {
 class QueueService {
   constructor() {
     this.collectionName = "queue";
+    this.functions = getFunctions(); // <-- ADD THIS LINE
   }
 
   // Get all queue items
@@ -70,7 +74,6 @@ class QueueService {
         status: queueData.status || "Waiting",
         type: queueData.type || "walk-in",
         notified: queueData.notified || false,
-        // NEW: Notification tracking
         lastNotifiedAt: null,
         notificationCount: 0,
         patientName: queueData.patientName?.trim() || "",
@@ -201,104 +204,27 @@ class QueueService {
     }
   }
 
-  // NEW: Smart notification system for app users
-  async notifyNextInQueue() {
+  // NEW: Triggers the backend Cloud Function to send an SMS
+  async sendSms(phoneNumber, message) {
+    // A function must be created on the backend (functions/index.js)
+    // with the name 'sendSmsNotification' for this to work.
+    const sendSmsNotification = httpsCallable(
+      this.functions,
+      "sendSmsNotification"
+    );
+
     try {
-      console.log("🔄 Notifying next patients in queue...");
-
-      const queue = await this.getQueue();
-      const waitingPatients = queue
-        .filter((p) => p.status === "Waiting")
-        .sort((a, b) => a.position - b.position);
-
-      if (waitingPatients.length === 0) {
-        console.log("ℹ️ No patients waiting to notify");
-        return {
-          success: false,
-          message: "No patients waiting in queue",
-          notifiedPatients: [],
-        };
-      }
-
-      // Find app users (not walk-ins) who haven't been notified recently
-      const appUsers = waitingPatients.filter(
-        (p) => p.type === "app" || p.type === "appointment"
-      );
-
-      if (appUsers.length === 0) {
-        console.log("ℹ️ No app users in queue to notify");
-        return {
-          success: false,
-          message: "No app users in queue (only walk-ins)",
-          notifiedPatients: [],
-        };
-      }
-
-      // Smart notification logic: notify next 2-3 app users
-      const currentlyCalled = queue.find((p) => p.status === "Called");
-      const currentPosition = currentlyCalled ? currentlyCalled.position : 0;
-
-      // Notify app users who are within 3 positions of being called
-      const patientsToNotify = appUsers
-        .filter((p) => {
-          const positionDiff = p.position - currentPosition;
-          return positionDiff <= 3 && positionDiff > 0 && !p.notified;
-        })
-        .slice(0, 3); // Maximum 3 notifications
-
-      if (patientsToNotify.length === 0) {
-        console.log(
-          "ℹ️ No new app users to notify (already notified or too far in queue)"
-        );
-        return {
-          success: false,
-          message: "All nearby app users have already been notified",
-          notifiedPatients: [],
-        };
-      }
-
-      // Send notifications and update Firebase
-      const notificationPromises = patientsToNotify.map(async (patient) => {
-        await this.updateQueueItem(patient.id, {
-          notified: true,
-          lastNotifiedAt: new Date().toISOString(),
-          notificationCount: (patient.notificationCount || 0) + 1,
-        });
-
-        // TODO: Here you would integrate with your actual notification service
-        // For now, we'll simulate the notification
-        console.log(`📱 Sending app notification to: ${patient.patientName}`);
-
-        return {
-          id: patient.id,
-          name: patient.patientName,
-          position: patient.position,
-          estimatedWait: this.calculateEstimatedWait(
-            patient.position,
-            currentPosition
-          ),
-        };
-      });
-
-      const notifiedPatients = await Promise.all(notificationPromises);
-
-      console.log(
-        "✅ Successfully notified patients:",
-        notifiedPatients.map((p) => p.name)
-      );
-
-      return {
-        success: true,
-        message: `Notified ${notifiedPatients.length} app user(s)`,
-        notifiedPatients,
-      };
+      console.log(`📱 Triggering SMS to ${phoneNumber}...`);
+      const result = await sendSmsNotification({ phoneNumber, message });
+      console.log("✅ SMS function executed successfully:", result.data);
+      return { success: true, message: "SMS sent successfully!" };
     } catch (error) {
-      console.error("❌ Error notifying next patients:", error);
-      throw new Error(`Failed to notify patients: ${error.message}`);
+      console.error("❌ Error calling sendSmsNotification function:", error);
+      throw new Error(error.message); // Throw the error to be caught by the UI
     }
   }
 
-  // NEW: Calculate estimated wait time
+  // Calculate estimated wait time
   calculateEstimatedWait(patientPosition, currentPosition) {
     const positionsAhead = patientPosition - currentPosition - 1;
     const avgTimePerPatient = 15; // minutes
@@ -313,21 +239,14 @@ class QueueService {
     }
   }
 
-  // Enhanced single patient notification
+  // This function now ONLY updates the database. The SMS is sent separately.
   async notifyPatient(queueId) {
     try {
-      console.log("🔄 Notifying individual patient:", queueId);
-
+      console.log("🔄 Updating notification status for patient:", queueId);
       const queue = await this.getQueue();
       const patient = queue.find((p) => p.id === queueId);
 
-      if (!patient) {
-        throw new Error("Patient not found in queue");
-      }
-
-      if (patient.type === "walk-in") {
-        throw new Error("Cannot send app notification to walk-in patients");
-      }
+      if (!patient) throw new Error("Patient not found in queue");
 
       await this.updateQueueItem(queueId, {
         notified: true,
@@ -335,20 +254,17 @@ class QueueService {
         notificationCount: (patient.notificationCount || 0) + 1,
       });
 
-      console.log("✅ Patient notified:", patient.patientName);
-
+      console.log(
+        "✅ Patient status updated to 'notified':",
+        patient.patientName
+      );
       return {
         success: true,
-        message: `Notified ${patient.patientName}`,
-        patient: {
-          id: patient.id,
-          name: patient.patientName,
-          position: patient.position,
-        },
+        message: `Updated status for ${patient.patientName}`,
       };
     } catch (error) {
-      console.error("❌ Error notifying patient:", error);
-      throw new Error(`Failed to notify patient: ${error.message}`);
+      console.error("❌ Error updating patient notification status:", error);
+      throw new Error(`Failed to update patient status: ${error.message}`);
     }
   }
 
@@ -363,16 +279,17 @@ class QueueService {
       const currentlyCalled = queue.find((p) => p.status === "Called");
       const currentPosition = currentlyCalled ? currentlyCalled.position : 0;
 
-      // Return app users who are close to being called
       return waitingPatients
         .filter((p) => {
-          const isAppUser = p.type === "app" || p.type === "appointment";
+          const isAppUser =
+            (p.type === "app" || p.type === "appointment") && p.phoneNumber;
           const positionDiff = p.position - currentPosition;
           return isAppUser && positionDiff <= 5 && positionDiff > 0;
         })
         .map((p) => ({
           id: p.id,
           name: p.patientName,
+          phoneNumber: p.phoneNumber,
           position: p.position,
           notified: p.notified || false,
           estimatedWait: this.calculateEstimatedWait(
@@ -394,7 +311,6 @@ class QueueService {
   async getQueueStats() {
     try {
       const queue = await this.getQueue();
-
       const stats = {
         total: queue.length,
         waiting: queue.filter((p) => p.status === "Waiting").length,
@@ -407,7 +323,6 @@ class QueueService {
         notified: queue.filter((p) => p.notified === true).length,
         averageWaitTime: "15 min",
       };
-
       console.log("📊 Queue stats:", stats);
       return stats;
     } catch (error) {
@@ -429,12 +344,10 @@ class QueueService {
   subscribeToQueue(callback) {
     try {
       console.log("🔄 Setting up real-time queue listener...");
-
       const q = query(
         collection(db, this.collectionName),
         orderBy("position", "asc")
       );
-
       return onSnapshot(
         q,
         (querySnapshot) => {
@@ -449,7 +362,6 @@ class QueueService {
               addedAt: data.addedAt?.toDate?.()?.toISOString() || data.addedAt,
             });
           });
-
           console.log("📡 Real-time queue update:", queueItems.length, "items");
           callback(queueItems);
         },
@@ -482,5 +394,4 @@ class QueueService {
   }
 }
 
-// Export singleton instance
 export const queueService = new QueueService();
